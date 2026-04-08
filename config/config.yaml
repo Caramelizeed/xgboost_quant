@@ -1,0 +1,35 @@
+data:
+  source: "yfinance"
+  default_asset: "BTC-USD"
+  timeframe: "1d"
+
+features:
+  momentum_windows: [5, 10, 20, 60]
+  vol_windows: [20, 60]
+  lag_periods: [1, 2, 3, 5, 10]
+
+labeling:
+  method: "threshold"
+  theta: 0.001
+  upper_barrier: 0.02
+  lower_barrier: -0.02
+  max_holding: 10
+
+model:
+  n_estimators: 300
+  max_depth: 4
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.7
+  reg_lambda: 1.5
+  reg_alpha: 0.5
+  random_state: 42
+
+validation:
+  train_years: 3
+  test_years: 1
+
+backtest:
+  transaction_cost: 0.001
+  slippage: 0.0005
+  risk_per_trade: 0.02

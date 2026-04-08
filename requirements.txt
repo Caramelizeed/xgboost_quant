@@ -1,0 +1,10 @@
+xgboost
+scikit-learn
+pandas
+numpy
+fastapi
+uvicorn
+pydantic
+yfinance
+shap
+pyyaml
