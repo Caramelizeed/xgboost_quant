@@ -2,9 +2,17 @@
   "name": "xgboost-quant-dashboard",
   "private": true,
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "axios": "^1.6.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "recharts": "^2.8.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.36",
+    "tailwindcss": "^3.4.4"
   },
   "scripts": {
     "start": "react-scripts start",

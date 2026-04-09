@@ -1,6 +1,6 @@
-import React from 'react';
-import { Dashboard } from './pages/Dashboard';
+import './index.css';
+import Terminal from './pages/Terminal';
 
 export default function App() {
-  return <Dashboard />;
+  return <Terminal />;
 }
