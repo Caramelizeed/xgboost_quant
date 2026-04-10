@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { runSimulation } from '../services/api';
+import { runSimulation, getExplain } from '../services/api';
 
 export default function useSimulation() {
   const [result, setResult] = useState(null);
@@ -11,8 +11,15 @@ export default function useSimulation() {
     setError(null);
     try {
       const data = await runSimulation(params);
-      setResult(data);
-      return data;
+      let explainData = null;
+      try {
+        explainData = await getExplain(params);
+      } catch (ex) {
+        console.warn('Explain fetch failed', ex);
+      }
+      const merged = { ...data, explain: explainData };
+      setResult(merged);
+      return merged;
     } catch (e) {
       setError(e.message || 'Unable to run simulation');
       setResult(null);

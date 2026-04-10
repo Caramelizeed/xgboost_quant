@@ -33,3 +33,7 @@ backtest:
   transaction_cost: 0.001
   slippage: 0.0005
   risk_per_trade: 0.02
+
+ccxt:
+  default_exchange: "binance"
+  supported_exchanges: ["binance", "bybit", "okx", "kraken"]

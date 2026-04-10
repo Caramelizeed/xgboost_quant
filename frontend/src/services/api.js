@@ -20,5 +20,15 @@ export const runSimulation = async (params) => {
   return { ...response.data, _latency: response._latency };
 };
 
+export const getExplain = async (params) => {
+  const response = await API.post('/explain', params);
+  return response.data;
+};
+
+export const runHeatmap = async (params) => {
+  const response = await API.post('/heatmap', params);
+  return response.data;
+};
+
 export const getAssets = () => API.get('/assets');
 export const getFeatures = () => API.get('/features');

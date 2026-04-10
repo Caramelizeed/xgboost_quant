@@ -1,14 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import useSimulation from '../hooks/useSimulation';
+import { runHeatmap } from '../services/api';
 import { MetricsBar } from '../components/MetricsBar';
 import { StrategyPanel } from '../components/StrategyPanel';
 import { EquityCurve } from '../components/EquityCurve';
+import { RollingChart } from '../components/RollingChart';
+import { HeatmapChart } from '../components/HeatmapChart';
+import { FeatureImportance } from '../components/FeatureImportance';
+import { TradeHistogram } from '../components/TradeHistogram';
 import { TradeBlotter } from '../components/TradeBlotter';
 import { StatusBar } from '../components/StatusBar';
 
 const defaultParams = {
   asset: 'NIFTY50',
   capital: 100000,
+  labeling_method: 'threshold',
+  exchange: null,
   threshold_long: 0.6,
   threshold_short: 0.4,
   risk_per_trade: 0.02,
@@ -17,11 +24,14 @@ const defaultParams = {
   timeframe: '1d',
 };
 
-const assetOptions = ['NIFTY50', 'BANKNIFTY', 'BTC-USD'];
+const assetOptions = ['NIFTY50', 'BANKNIFTY', 'BTC/USDT', 'ETH/USDT', 'AAPL', 'TSLA', 'RELIANCE.NS', 'INFY.NS', 'TCS.NS', 'HDFC.NS'];
 
 export default function Terminal() {
   const [params, setParams] = useState(defaultParams);
   const [lastRun, setLastRun] = useState('never');
+  const [heatmap, setHeatmap] = useState(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapError, setHeatmapError] = useState(null);
   const { result, loading, error, run } = useSimulation();
 
   const handleParamChange = (key, value) => {
@@ -29,13 +39,47 @@ export default function Terminal() {
   };
 
   const handleAssetChange = (event) => {
-    setParams((prev) => ({ ...prev, asset: event.target.value }));
+    const asset = event.target.value;
+    setParams((prev) => ({
+      ...prev,
+      asset,
+      exchange: asset.includes('/') ? prev.exchange : null,
+    }));
   };
 
   const handleRun = async () => {
     const data = await run(params);
     if (data) {
       setLastRun(new Date().toLocaleString());
+    }
+  };
+
+  const buildRange = (center, step, count, min, max) => {
+    const half = Math.floor(count / 2);
+    return Array.from({ length: count }, (_, idx) => {
+      const value = Number((center + (idx - half) * step).toFixed(4));
+      return Math.min(Math.max(value, min), max);
+    });
+  };
+
+  const handleGenerateHeatmap = async () => {
+    setHeatmapLoading(true);
+    setHeatmapError(null);
+    try {
+      const payload = {
+        base_params: params,
+        param_x: 'threshold_long',
+        param_y: 'risk_per_trade',
+        x_range: buildRange(params.threshold_long, 0.02, 8, 0.5, 1.0),
+        y_range: buildRange(params.risk_per_trade, 0.005, 8, 0.005, 0.1),
+      };
+      const data = await runHeatmap(payload);
+      setHeatmap(data);
+    } catch (ex) {
+      setHeatmapError(ex.message || 'Heatmap generation failed');
+      setHeatmap(null);
+    } finally {
+      setHeatmapLoading(false);
     }
   };
 
@@ -60,13 +104,18 @@ export default function Terminal() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Asset</div>
-                <select value={params.asset} onChange={handleAssetChange} className="mt-2 w-full bg-transparent text-white outline-none">
+                <input
+                  list="asset-options"
+                  placeholder="Type any stock or crypto symbol"
+                  value={params.asset}
+                  onChange={handleAssetChange}
+                  className="mt-2 w-full rounded border border-[#2b2b2b] bg-[#0f172a] px-3 py-2 text-white outline-none"
+                />
+                <datalist id="asset-options">
                   {assetOptions.map((asset) => (
-                    <option key={asset} value={asset} className="bg-surface text-white">
-                      {asset}
-                    </option>
+                    <option key={asset} value={asset} />
                   ))}
-                </select>
+                </datalist>
               </div>
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Time range</div>
@@ -76,8 +125,23 @@ export default function Terminal() {
           </div>
         </header>
 
-        <section>
+        <section className="space-y-4">
           <MetricsBar data={result} />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
+              <div className="text-xs uppercase tracking-[0.3em] text-muted">Heatmap</div>
+              <div className="mt-2 text-white">Explore the Sharpe surface for threshold and risk per trade.</div>
+              {heatmapError && <div className="mt-3 text-sm text-negative">{heatmapError}</div>}
+            </div>
+            <button
+              type="button"
+              disabled={heatmapLoading}
+              onClick={handleGenerateHeatmap}
+              className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              {heatmapLoading ? 'Generating heatmap...' : 'Generate heatmap'}
+            </button>
+          </div>
         </section>
 
         <main className="grid gap-6 grid-cols-1 xl:grid-cols-[minmax(280px,320px)_1fr] overflow-x-hidden">
@@ -87,12 +151,33 @@ export default function Terminal() {
 
           <div className="space-y-6 min-w-0">
             {result?.dates?.length > 0 && result?.equity_curve?.length > 0 ? (
-              <EquityCurve dates={result?.dates} equityCurve={result?.equity_curve} drawdown={drawdown} />
+              <>
+                <EquityCurve dates={result?.dates} equityCurve={result?.equity_curve} drawdown={drawdown} />
+                <RollingChart
+                  dates={result?.dates}
+                  rollingSharpe={result?.rolling_sharpe}
+                  rollingHitRate={result?.rolling_hit_rate}
+                />
+                <FeatureImportance
+                  featureNames={result?.explain?.feature_names}
+                  meanAbsShap={result?.explain?.mean_abs_shap}
+                />
+                <TradeHistogram trades={result?.trades || []} />
+              </>
             ) : (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
                 Run a simulation to reveal the equity curve.
               </div>
             )}
+
+            <HeatmapChart
+              heatmap={heatmap}
+              onCellClick={(values) => {
+                const updated = { ...params, ...values };
+                setParams(updated);
+                run(updated);
+              }}
+            />
 
             {result?.trades?.length > 0 ? (
               <TradeBlotter trades={result.trades} />

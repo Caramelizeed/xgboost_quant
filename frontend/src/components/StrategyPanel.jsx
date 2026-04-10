@@ -9,8 +9,10 @@ const controls = [
 ];
 
 export function StrategyPanel({ params, onChange, onRun, loading }) {
+  const isCcxtAsset = params.asset?.includes('/');
+
   return (
-    <div className="flex min-h-[520px] flex-col gap-5 rounded-xl border border-border bg-surface p-5 shadow-[0_0_50px_rgba(0,0,0,0.15)]">
+    <div className="flex min-h-[620px] flex-col gap-5 rounded-xl border border-border bg-surface p-5 shadow-[0_0_50px_rgba(0,0,0,0.15)]">
       <div className="space-y-1">
         <div className="text-xs uppercase tracking-[0.3em] text-muted">Strategy Panel</div>
         <h2 className="text-xl font-semibold text-white">Signal parameters</h2>
@@ -18,6 +20,58 @@ export function StrategyPanel({ params, onChange, onRun, loading }) {
       </div>
 
       <div className="space-y-6 flex-1">
+        <div className="grid gap-4">
+          <div>
+            <label className="text-sm uppercase tracking-[0.3em] text-muted">Start date</label>
+            <input
+              type="date"
+              value={params.start_date}
+              onChange={(event) => onChange('start_date', event.target.value)}
+              className="mt-2 w-full rounded border border-[#2b2b2b] bg-[#0f172a] px-3 py-2 text-white outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-sm uppercase tracking-[0.3em] text-muted">End date</label>
+            <input
+              type="date"
+              value={params.end_date}
+              onChange={(event) => onChange('end_date', event.target.value)}
+              className="mt-2 w-full rounded border border-[#2b2b2b] bg-[#0f172a] px-3 py-2 text-white outline-none"
+            />
+          </div>
+          <div>
+            <div className="text-sm uppercase tracking-[0.3em] text-muted">Labeling method</div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {['threshold', 'triple_barrier'].map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => onChange('labeling_method', method)}
+                  className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${params.labeling_method === method ? 'border-amber-400 bg-amber-500/15 text-white' : 'border-[#2b2b2b] text-muted'}`}
+                >
+                  {method.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          {isCcxtAsset && (
+            <div>
+              <div className="text-sm uppercase tracking-[0.3em] text-muted">Exchange</div>
+              <select
+                value={params.exchange || 'binance'}
+                onChange={(event) => onChange('exchange', event.target.value)}
+                className="mt-2 w-full rounded border border-[#2b2b2b] bg-[#0f172a] px-3 py-2 text-white outline-none"
+              >
+                {['binance', 'bybit', 'okx', 'kraken'].map((exchange) => (
+                  <option key={exchange} value={exchange} className="bg-surface text-white">
+                    {exchange}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         {controls.map((control) => (
           <div key={control.key} className="space-y-2">
             <div className="flex items-center justify-between text-sm uppercase text-muted">
