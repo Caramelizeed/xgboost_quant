@@ -158,7 +158,6 @@ http://localhost:5173
 
 ## 🛣️ Roadmap
 
-* [ ] Multi-asset support (CCXT integration)
 * [ ] Strategy comparison (multi-run overlay)
 * [ ] Parameter heatmaps (optimization visualization)
 * [ ] Feature importance (SHAP analysis)
