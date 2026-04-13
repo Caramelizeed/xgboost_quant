@@ -159,7 +159,6 @@ http://localhost:5173
 ## 🛣️ Roadmap
 
 * [ ] Strategy comparison (multi-run overlay)
-* [ ] Parameter heatmaps (optimization visualization)
 * [ ] Feature importance (SHAP analysis)
 * [ ] Deployment (cloud + live demo)
 
