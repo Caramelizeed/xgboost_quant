@@ -1,60 +1,200 @@
-# xgboost_quant
+# XGBoost Quant
 
-Structured quant ML project scaffold for signal generation, walk-forward training, FastAPI deployment, and a dark terminal-style React dashboard.
+A full-stack quantitative trading system that uses XGBoost to generate buy/sell signals, backtest strategies, and visualize results through an interactive dashboard.
 
-## Layout
-- `data/` raw, processed, and feature parquet data
-- `src/` core pipeline modules and FastAPI API
-- `frontend/` React dashboard for live strategy simulation
-- `notebooks/` research and analysis
-- `config/config.yaml` hyperparameters and execution defaults
-- `tests/` unit and integration checks
+Supports both **stocks/indexes** (via yfinance) and **crypto** (via CCXT).
 
-## Backend
-The API is served from `src/api/main.py` with CORS enabled and exposes:
-- `POST /simulate` — run a simulation and return performance metrics, equity curve, and trades
+---
 
-### Assets supported by frontend
-- `NIFTY50` → `^NSEI`
-- `BANKNIFTY` → `^NSEBANK`
-- `BTC-USD` → `BTC-USD`
+## What It Does
 
-### Run backend
-```bash
-pip install -r requirements.txt
-python -m uvicorn src.api.main:app --reload --port 8000
+This project is an end-to-end ML trading pipeline — not just a price predictor. It fetches market data, engineers features, trains a model using walk-forward validation, backtests a threshold-based strategy with realistic costs, and serves everything through a FastAPI backend + React dashboard.
+
+---
+
+## Pipeline Overview
+
+```
+Raw OHLCV Data
+      ↓
+Data Cleaning & Labeling
+      ↓
+Feature Engineering (momentum, volatility, regime, statistical)
+      ↓
+XGBoost Training (walk-forward splits)
+      ↓
+Probability → Signal Generation (long/short thresholds)
+      ↓
+Backtest (equity curve, Sharpe, drawdown, trade log)
+      ↓
+FastAPI backend → React Dashboard
 ```
 
-## Frontend
-The dashboard is located in `frontend/` and uses React, Tailwind, Recharts, and Axios.
+---
 
-### Run frontend
+## Project Structure
+
+```
+xgboost_quant/
+├── main.py                   # CLI entry point
+├── config/
+│   └── config.yaml           # Asset, model, and backtest config
+├── src/
+│   ├── api/
+│   │   ├── main.py           # FastAPI app and endpoints
+│   │   ├── simulation.py     # Full pipeline orchestration
+│   │   └── schemas.py        # Request/response models
+│   ├── data/
+│   │   ├── ingestion.py      # yfinance + CCXT data fetching (Parquet cache)
+│   │   ├── ccxt_ingestion.py # CCXT helper
+│   │   ├── cleaning.py       # Data preparation
+│   │   └── labeling.py       # Target label generation
+│   ├── features/
+│   │   ├── price.py          # Price-based features
+│   │   ├── statistical.py    # Statistical features
+│   │   ├── regime.py         # Regime/trend features
+│   │   └── pipeline.py       # Feature combiner
+│   ├── models/
+│   │   ├── train.py          # Walk-forward training
+│   │   ├── predict.py        # Prediction helper
+│   │   ├── explain.py        # Feature importance / SHAP
+│   │   └── evaluate.py       # Scoring utilities
+│   └── backtest/
+│       ├── engine.py         # Equity curve, P&L, signals
+│       ├── metrics.py        # Sharpe, drawdown, hit rate
+│       └── costs.py          # Transaction cost handling
+├── frontend/
+│   └── src/
+│       ├── App.jsx           # Navigation
+│       ├── pages/
+│       │   ├── Terminal.jsx  # Main simulation dashboard
+│       │   └── AssetSearch.jsx
+│       ├── components/       # Charts, metrics, heatmaps, trade log
+│       └── services/api.js   # Axios wrapper for backend
+├── notebooks/
+│   └── research.ipynb
+└── tests/
+```
+
+---
+
+## Features
+
+- **Walk-forward validation** — no data leakage; model trained on expanding windows
+- **Dual labeling** — threshold labeling or triple barrier method
+- **Realistic backtest** — includes transaction costs and slippage
+- **Performance metrics** — Sharpe ratio, max drawdown, hit rate, turnover
+- **SHAP explainability** — understand which features drive signals
+- **Heatmap analysis** — parameter sensitivity across threshold combinations
+- **Dark terminal UI** — built for fast iteration during research
+
+---
+
+## Backtest Metrics
+
+| Metric | Description |
+|--------|-------------|
+| Sharpe Ratio | Risk-adjusted return |
+| Max Drawdown | Largest peak-to-trough loss |
+| Hit Rate | % of winning trades |
+| Turnover | Trading frequency |
+| Equity Curve | Cumulative P&L over time |
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/simulate` | Run full pipeline and return backtest results |
+| POST | `/explain` | Return feature importance for a trained model |
+| POST | `/heatmap` | Generate parameter sensitivity heatmap |
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Caramelizeed/xgboost_quant.git
+cd xgboost_quant
+```
+
+### 2. Install Python dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure the project
+
+Edit `config/config.yaml` to set your asset, date range, model hyperparameters, and backtest settings.
+
+### 4. Run via CLI
+
+```bash
+python main.py
+```
+
+### 5. Start the backend API
+
+```bash
+uvicorn src.api.main:app --reload
+```
+
+### 6. Start the frontend
+
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
-Browse the app at `http://localhost:3000` and ensure backend is running at `http://127.0.0.1:8000`.
+The dashboard will be available at `http://localhost:5173` (or whichever port Vite assigns).
 
-## What changed
-- Added a React dashboard under `frontend/` with a dark terminal-style layout
-- Added Tailwind CSS and custom terminal theme styling in `frontend/tailwind.config.js` and `frontend/src/index.css`
-- Added dashboard components:
-  - `Terminal.jsx` — main layout
-  - `StrategyPanel.jsx` — parameter sliders + run button
-  - `MetricsBar.jsx` — top metrics ribbon
-  - `EquityCurve.jsx` — chart with equity + drawdown
-  - `TradeBlotter.jsx` — sortable trade log
-  - `StatusBar.jsx` — latency / asset / last run / errors
-  - `RunButton.jsx` — loading CTA button
-- Added API service with latency tracking in `frontend/src/services/api.js`
-- Added `useSimulation` hook for async simulation state management
-- Fixed frontend chart layout and overflow so the equity chart no longer breaks the page
-- Anchored the run button within the strategy panel for stable layout
-- Fixed backend asset mapping for `NIFTY50` and `BANKNIFTY` with yfinance-compatible tickers
-- Updated React entry point to render the dashboard and added CSS imports
+---
 
-## Notes
-- Backend and frontend are separate; run both servers concurrently for full end-to-end flow
-- If the frontend complains about missing package versions, re-run `npm install` inside `frontend/`
+## Configuration (`config/config.yaml`)
+
+Key settings you can tune:
+
+```yaml
+asset: "BTC/USDT"          # Stock ticker or crypto pair (use / for crypto)
+timeframe: "1d"             # Data frequency
+feature_windows: [5, 10, 20, 50]
+validation_years: 1
+model:
+  n_estimators: 200
+  max_depth: 4
+  learning_rate: 0.05
+backtest:
+  threshold_long: 0.6
+  threshold_short: 0.4
+  transaction_cost: 0.001
+  slippage: 0.0005
+```
+
+---
+
+## Tech Stack
+
+**Backend:** Python, XGBoost, FastAPI, yfinance, CCXT, pandas, scikit-learn
+
+**Frontend:** React, Vite, Axios, Recharts
+
+---
+
+## Roadmap
+
+- [ ] Live trading integration
+- [ ] Portfolio-level backtesting (multi-asset)
+- [ ] Additional models (LightGBM, CatBoost)
+- [ ] Automated hyperparameter tuning
+- [ ] Email/webhook alerts for signal generation
+
+---
+
+## License
+
+MIT
