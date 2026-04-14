@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useSimulation from '../hooks/useSimulation';
 import { runHeatmap } from '../services/api';
 import { MetricsBar } from '../components/MetricsBar';
@@ -24,9 +24,8 @@ const defaultParams = {
   timeframe: '1d',
 };
 
-const assetOptions = ['NIFTY50', 'BANKNIFTY', 'BTC/USDT', 'ETH/USDT', 'AAPL', 'TSLA', 'RELIANCE.NS', 'INFY.NS', 'TCS.NS', 'HDFC.NS'];
 
-export default function Terminal() {
+export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch = () => {} }) {
   const [params, setParams] = useState(defaultParams);
   const [lastRun, setLastRun] = useState('never');
   const [heatmap, setHeatmap] = useState(null);
@@ -34,17 +33,16 @@ export default function Terminal() {
   const [heatmapError, setHeatmapError] = useState(null);
   const { result, loading, error, run } = useSimulation();
 
-  const handleParamChange = (key, value) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleAssetChange = (event) => {
-    const asset = event.target.value;
+  useEffect(() => {
     setParams((prev) => ({
       ...prev,
-      asset,
-      exchange: asset.includes('/') ? prev.exchange : null,
+      asset: initialAsset,
+      exchange: initialAsset.includes('/') ? prev.exchange : null,
     }));
+  }, [initialAsset]);
+
+  const handleParamChange = (key, value) => {
+    setParams((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleRun = async () => {
@@ -55,11 +53,12 @@ export default function Terminal() {
   };
 
   const buildRange = (center, step, count, min, max) => {
-    const half = Math.floor(count / 2);
-    return Array.from({ length: count }, (_, idx) => {
-      const value = Number((center + (idx - half) * step).toFixed(4));
-      return Math.min(Math.max(value, min), max);
+    const half = (count - 1) / 2;
+    const values = Array.from({ length: count }, (_, idx) => {
+      const raw = Number((center + (idx - half) * step).toFixed(4));
+      return Math.min(Math.max(raw, min), max);
     });
+    return Array.from(new Set(values));
   };
 
   const handleGenerateHeatmap = async () => {
@@ -104,18 +103,19 @@ export default function Terminal() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Asset</div>
-                <input
-                  list="asset-options"
-                  placeholder="Type any stock or crypto symbol"
-                  value={params.asset}
-                  onChange={handleAssetChange}
-                  className="mt-2 w-full rounded border border-[#2b2b2b] bg-[#0f172a] px-3 py-2 text-white outline-none"
-                />
-                <datalist id="asset-options">
-                  {assetOptions.map((asset) => (
-                    <option key={asset} value={asset} />
-                  ))}
-                </datalist>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-white font-semibold">{params.asset}</span>
+                  <button
+                    type="button"
+                    onClick={onOpenAssetSearch}
+                    className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-amber-400"
+                  >
+                    Change
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-muted">
+                  Use the dedicated asset page to search and switch symbols cleanly.
+                </div>
               </div>
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Time range</div>

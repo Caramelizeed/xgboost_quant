@@ -1,0 +1,25 @@
+{
+  "files": {
+    "main.css": "/static/css/main.940bdd41.css",
+    "main.js": "/static/js/main.d6581f56.js",
+    "static/media/jetbrains-mono-latin-400-normal.woff": "/static/media/jetbrains-mono-latin-400-normal.1fef352a4021940e309a.woff",
+    "static/media/jetbrains-mono-latin-400-normal.woff2": "/static/media/jetbrains-mono-latin-400-normal.d04352f240062b100fba.woff2",
+    "static/media/jetbrains-mono-latin-ext-400-normal.woff": "/static/media/jetbrains-mono-latin-ext-400-normal.dfdc51c009ca3dea7613.woff",
+    "static/media/jetbrains-mono-latin-ext-400-normal.woff2": "/static/media/jetbrains-mono-latin-ext-400-normal.e83b764e84e73968db26.woff2",
+    "static/media/jetbrains-mono-cyrillic-400-normal.woff": "/static/media/jetbrains-mono-cyrillic-400-normal.d0dbe121eb8ccfff69fd.woff",
+    "static/media/jetbrains-mono-greek-400-normal.woff": "/static/media/jetbrains-mono-greek-400-normal.55220d4dce9386883dd6.woff",
+    "static/media/jetbrains-mono-vietnamese-400-normal.woff": "/static/media/jetbrains-mono-vietnamese-400-normal.411bbf704034dd802498.woff",
+    "static/media/jetbrains-mono-cyrillic-400-normal.woff2": "/static/media/jetbrains-mono-cyrillic-400-normal.f69e1e24f04a6ce942c0.woff2",
+    "static/media/jetbrains-mono-greek-400-normal.woff2": "/static/media/jetbrains-mono-greek-400-normal.3a4578ae9901384175e2.woff2",
+    "static/media/jetbrains-mono-vietnamese-400-normal.woff2": "/static/media/jetbrains-mono-vietnamese-400-normal.aa664ef15f2e285e9dda.woff2",
+    "static/media/jetbrains-mono-cyrillic-ext-400-normal.woff": "/static/media/jetbrains-mono-cyrillic-ext-400-normal.831e0db23a3b56373d02.woff",
+    "static/media/jetbrains-mono-cyrillic-ext-400-normal.woff2": "/static/media/jetbrains-mono-cyrillic-ext-400-normal.7347c7bfed47f1ef0b25.woff2",
+    "index.html": "/index.html",
+    "main.940bdd41.css.map": "/static/css/main.940bdd41.css.map",
+    "main.d6581f56.js.map": "/static/js/main.d6581f56.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.940bdd41.css",
+    "static/js/main.d6581f56.js"
+  ]
+}
