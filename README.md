@@ -191,7 +191,6 @@ backtest:
 - [ ] Portfolio-level backtesting (multi-asset)
 - [ ] Additional models (LightGBM, CatBoost)
 - [ ] Automated hyperparameter tuning
-- [ ] Email/webhook alerts for signal generation
 
 ---
 
