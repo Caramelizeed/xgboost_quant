@@ -24,31 +24,54 @@ const defaultParams = {
   timeframe: '1d',
 };
 
+const defaultParamsB = {
+  ...defaultParams,
+  threshold_long: 0.7,
+  threshold_short: 0.3,
+  risk_per_trade: 0.03,
+};
 
 export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch = () => {} }) {
-  const [params, setParams] = useState(defaultParams);
+  const [mode, setMode] = useState('single');
+  const [paramsA, setParamsA] = useState(defaultParams);
+  const [paramsB, setParamsB] = useState(defaultParamsB);
   const [lastRun, setLastRun] = useState('never');
   const [heatmap, setHeatmap] = useState(null);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [heatmapError, setHeatmapError] = useState(null);
-  const { result, loading, error, run } = useSimulation();
+  const { result: resultA, loading: loadingA, error: errorA, run: runA } = useSimulation();
+  const { result: resultB, loading: loadingB, error: errorB, run: runB } = useSimulation();
 
   useEffect(() => {
-    setParams((prev) => ({
+    const exchange = initialAsset.includes('/') ? paramsA.exchange : null;
+    setParamsA((prev) => ({
       ...prev,
       asset: initialAsset,
-      exchange: initialAsset.includes('/') ? prev.exchange : null,
+      exchange,
+    }));
+    setParamsB((prev) => ({
+      ...prev,
+      asset: initialAsset,
+      exchange,
     }));
   }, [initialAsset]);
 
-  const handleParamChange = (key, value) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
+  const handleParamChange = (side, key, value) => {
+    const updater = side === 'A' ? setParamsA : setParamsB;
+    updater((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleRun = async () => {
-    const data = await run(params);
-    if (data) {
-      setLastRun(new Date().toLocaleString());
+    if (mode === 'single') {
+      const data = await runA(paramsA);
+      if (data) {
+        setLastRun(new Date().toLocaleString());
+      }
+    } else {
+      const [dataA, dataB] = await Promise.all([runA(paramsA), runB(paramsB)]);
+      if (dataA || dataB) {
+        setLastRun(new Date().toLocaleString());
+      }
     }
   };
 
@@ -66,11 +89,11 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
     setHeatmapError(null);
     try {
       const payload = {
-        base_params: params,
+        base_params: paramsA,
         param_x: 'threshold_long',
         param_y: 'risk_per_trade',
-        x_range: buildRange(params.threshold_long, 0.02, 8, 0.5, 1.0),
-        y_range: buildRange(params.risk_per_trade, 0.005, 8, 0.005, 0.1),
+        x_range: buildRange(paramsA.threshold_long, 0.02, 8, 0.5, 1.0),
+        y_range: buildRange(paramsA.risk_per_trade, 0.005, 8, 0.005, 0.1),
       };
       const data = await runHeatmap(payload);
       setHeatmap(data);
@@ -82,14 +105,23 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
     }
   };
 
-  const drawdown = useMemo(() => {
-    const equity = result?.equity_curve || [];
+  const drawdownA = useMemo(() => {
+    const equity = resultA?.equity_curve || [];
     let peak = -Infinity;
     return equity.map((value) => {
       peak = Math.max(peak, value);
       return peak > 0 ? ((value - peak) / peak) * 100 : 0;
     });
-  }, [result]);
+  }, [resultA]);
+
+  const drawdownB = useMemo(() => {
+    const equity = resultB?.equity_curve || [];
+    let peak = -Infinity;
+    return equity.map((value) => {
+      peak = Math.max(peak, value);
+      return peak > 0 ? ((value - peak) / peak) * 100 : 0;
+    });
+  }, [resultB]);
 
   return (
     <div className="min-h-screen bg-terminal px-4 py-6 text-white sm:px-6 lg:px-8 overflow-x-hidden">
@@ -102,9 +134,28 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
+                <div className="text-xs uppercase tracking-[0.3em] text-muted">Mode</div>
+                <div className="mt-2 inline-flex overflow-hidden rounded-full border border-border bg-surface text-sm">
+                  <button
+                    type="button"
+                    className={`px-3 py-2 transition ${mode === 'single' ? 'bg-amber-500 text-black' : 'text-muted hover:bg-white/5'}`}
+                    onClick={() => setMode('single')}
+                  >
+                    Single Mode
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 transition ${mode === 'compare' ? 'bg-amber-500 text-black' : 'text-muted hover:bg-white/5'}`}
+                    onClick={() => setMode('compare')}
+                  >
+                    Compare Mode
+                  </button>
+                </div>
+              </div>
+              <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Asset</div>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <span className="text-white font-semibold">{params.asset}</span>
+                  <span className="text-white font-semibold">{paramsA.asset}</span>
                   <button
                     type="button"
                     onClick={onOpenAssetSearch}
@@ -119,14 +170,14 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
               </div>
               <div className="rounded border border-border bg-[#121212] p-3 text-sm">
                 <div className="text-xs uppercase tracking-[0.3em] text-muted">Time range</div>
-                <div className="mt-2 text-white">{params.start_date} → {params.end_date}</div>
+                <div className="mt-2 text-white">{paramsA.start_date} → {paramsA.end_date}</div>
               </div>
             </div>
           </div>
         </header>
 
         <section className="space-y-4">
-          <MetricsBar data={result} />
+          {mode === 'single' && <MetricsBar data={resultA} />}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
               <div className="text-xs uppercase tracking-[0.3em] text-muted">Heatmap</div>
@@ -144,25 +195,61 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
           </div>
         </section>
 
-        <main className="grid gap-6 grid-cols-1 xl:grid-cols-[minmax(280px,320px)_1fr] overflow-x-hidden">
+        <main className="grid gap-6 grid-cols-1 xl:grid-cols-[minmax(320px,380px)_1fr] overflow-x-hidden">
           <div className="space-y-6 min-w-0">
-            <StrategyPanel params={params} onChange={handleParamChange} onRun={handleRun} loading={loading} />
+            {mode === 'single' ? (
+              <StrategyPanel params={paramsA} onChange={(key, value) => handleParamChange('A', key, value)} onRun={handleRun} loading={loadingA} />
+            ) : (
+              <div className="space-y-6">
+                <StrategyPanel params={paramsA} onChange={(key, value) => handleParamChange('A', key, value)} onRun={() => {}} loading={loadingA} />
+                <StrategyPanel params={paramsB} onChange={(key, value) => handleParamChange('B', key, value)} onRun={() => {}} loading={loadingB} />
+                <button
+                  type="button"
+                  onClick={handleRun}
+                  disabled={loadingA || loadingB}
+                  className="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+                >
+                  {loadingA || loadingB ? 'Running comparison...' : 'Run Compare'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 min-w-0">
-            {result?.dates?.length > 0 && result?.equity_curve?.length > 0 ? (
+            {(mode === 'single' ? resultA : resultA && resultB) && (mode === 'single' ? resultA?.dates?.length > 0 && resultA?.equity_curve?.length > 0 : resultA?.dates?.length > 0 && resultA?.equity_curve?.length > 0 && resultB?.equity_curve?.length > 0) ? (
               <>
-                <EquityCurve dates={result?.dates} equityCurve={result?.equity_curve} drawdown={drawdown} />
+                {mode === 'compare' ? (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-border bg-surface p-4">
+                      <div className="text-sm uppercase tracking-[0.3em] text-muted">Strategy A</div>
+                      <MetricsBar data={resultA} />
+                    </div>
+                    <div className="rounded-xl border border-border bg-surface p-4">
+                      <div className="text-sm uppercase tracking-[0.3em] text-muted">Strategy B</div>
+                      <MetricsBar data={resultB} />
+                    </div>
+                  </div>
+                ) : (
+                  <MetricsBar data={resultA} />
+                )}
+
+                <EquityCurve
+                  dates={resultA?.dates}
+                  equityCurve={resultA?.equity_curve}
+                  drawdown={drawdownA}
+                  compareCurve={mode === 'compare' ? resultB?.equity_curve : []}
+                  compareDrawdown={mode === 'compare' ? drawdownB : []}
+                />
                 <RollingChart
-                  dates={result?.dates}
-                  rollingSharpe={result?.rolling_sharpe}
-                  rollingHitRate={result?.rolling_hit_rate}
+                  dates={resultA?.dates}
+                  rollingSharpe={resultA?.rolling_sharpe}
+                  rollingHitRate={resultA?.rolling_hit_rate}
                 />
                 <FeatureImportance
-                  featureNames={result?.explain?.feature_names}
-                  meanAbsShap={result?.explain?.mean_abs_shap}
+                  featureNames={resultA?.explain?.feature_names}
+                  meanAbsShap={resultA?.explain?.mean_abs_shap}
                 />
-                <TradeHistogram trades={result?.trades || []} />
+                <TradeHistogram trades={resultA?.trades || []} />
               </>
             ) : (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
@@ -173,14 +260,14 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
             <HeatmapChart
               heatmap={heatmap}
               onCellClick={(values) => {
-                const updated = { ...params, ...values };
-                setParams(updated);
-                run(updated);
+                const updated = { ...paramsA, ...values };
+                setParamsA(updated);
+                runA(updated);
               }}
             />
 
-            {result?.trades?.length > 0 ? (
-              <TradeBlotter trades={result.trades} />
+            {(mode === 'single' ? resultA?.trades?.length > 0 : resultA?.trades?.length > 0 || resultB?.trades?.length > 0) ? (
+              <TradeBlotter trades={resultA?.trades || []} />
             ) : (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
                 Trade blotter will appear after a successful run.
@@ -189,7 +276,12 @@ export default function Terminal({ initialAsset = 'NIFTY50', onOpenAssetSearch =
           </div>
         </main>
 
-        <StatusBar latency={result?._latency} asset={params.asset} lastRun={lastRun} error={error} />
+        <StatusBar
+          latency={resultA?._latency ?? resultB?._latency}
+          asset={paramsA.asset}
+          lastRun={lastRun}
+          error={errorA || errorB}
+        />
       </div>
     </div>
   );
