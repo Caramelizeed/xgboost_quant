@@ -60,8 +60,8 @@ def run_backtest(
     returns,
     close_prices,
     capital: float = 100_000,
-    threshold_long: float = 0.6,
-    threshold_short: float = 0.4,
+    threshold_long: float = 0.65,
+    threshold_short: float = 0.35,
     risk_per_trade: Optional[float] = None,
     transaction_cost: Optional[float] = None,
     slippage: Optional[float] = None,
@@ -92,6 +92,13 @@ def run_backtest(
     signal = pd.Series(0, index=probs.index)
     signal[probs > threshold_long] = 1
     signal[probs < threshold_short] = -1
+
+    if signal.abs().sum() == 0:
+        fallback_long = 0.6
+        fallback_short = 0.4
+        signal[probs > fallback_long] = 1
+        signal[probs < fallback_short] = -1
+
     position_size = risk_per_trade * capital
     signal_change = signal.diff().abs() > 0
     total_cost_pct = transaction_cost + slippage
