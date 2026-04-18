@@ -190,7 +190,7 @@ backtest:
 - [ ] Live trading integration
 - [ ] Portfolio-level backtesting (multi-asset)
 - [ ] Additional models (LightGBM, CatBoost)
-- [ ] Automated hyperparameter tuning
+- [ ] Adding the heatmap
 
 ---
 
