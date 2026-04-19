@@ -184,15 +184,8 @@ backtest:
 **Frontend:** React, Vite, Axios, Recharts
 
 ---
+##Ending this project with some love
 
-## Roadmap
-
-- [ ] Live trading integration
-- [ ] Portfolio-level backtesting (multi-asset)
-- [ ] Additional models (LightGBM, CatBoost)
-- [ ] Adding the heatmap
-
----
 
 ## License
 
